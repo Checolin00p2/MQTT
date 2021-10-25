@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.2.6/mqtt.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosquitto y JavaScript</title>
+    
+    <script>
+      
+    </script>
+    <script type="text/javascript">
+        //var client = mqtt.connect('ws://test.mosquitto.org:8080/mqtt');
+        var client = mqtt.connect('ws://192.168.0.13:8883');
+        //var client = mqtt.connect("ws://broker.mqttdashboard.com:8000/mqtt");
+        var mensaje;
+        //var client  = mqtt.connect({ host: "192.168.0.104", port: 1883 });
+       /*function onFailure(client){
+            if(connected_flag==0){
+                console.log("Failed");
+                document.getElementById("status").innerHTML = "Connection Failed- Retrying";
+                setTimeout(MQTTconnect, reconnectTimeout);
+            }
+        }*/
+        function EventoConectar() {
+            if(client){
+                document.getElementById("status").innerHTML = "Conectado";
+                console.log("Conectado a MQTT");
+                console.log("Esperando a recibir un dato.");
+                client.subscribe("prueba/#", function(err) {
+                /*if (!err) {
+                    client.publish("prueba/Temperatura", "30");
+                    }*/
+                });
+	    }
+        }
+        function EventoMensaje(topic, message) {
+            var objetivo = document.getElementById('dato');
+	    var humd = document.getElementById('humedadxd');
+	    var hor = document.getElementById('horaxd');
+            if (topic == "prueba/temperatura") {
+                console.log("La Temperatura es " + message.toString());
+                objetivo.innerHTML = topic + " : " + message.toString() + ' °C' ;
+		mensaje = message;
+	    /*if(mensaje >= "100"){
+				alert(message.toString() + "° es una alta temperatura, checar a ver qué ocurre.");	
+		}*/
+	    }else if(topic == "prueba/humedad"){
+	    	console.log("La Humedad es " + message.toString());
+		humd.innerHTML = topic + ' : ' + message.toString() + '';
+		mensaje2 = message;
+	    }else if(topic == "prueba/hora"){
+	    	console.log("Fecha " + message.toString());
+		hor.innerHTML = topic + ' : ' + message.toString();
+		mensaje3 = message;
+	    }else{
+            	console.log(topic + " : " + message.toString());
+            	objetivo.innerHTML = topic + ' : ' + message.toString() + ' °C';
+	    }
+            console.log(mensaje);
+            google.charts.load('current', {'packages':['gauge']});
+            google.charts.setOnLoadCallback(drawChart);
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(drawVisualization);
+            // client.end()
+        }
+    
+        client.on("connect", EventoConectar);
+        client.on("message", EventoMensaje);
+        //prompt("Texto descriptivo","Texto por defecto");
+        console.log("Empezando a conectar");
+
+      function drawChart(topic, message) {
+
+        var data = google.visualization.arrayToDataTable([
+          ['Label', 'value'],
+          ['Temperatura',  parseFloat(mensaje)],
+          ['Humedad',  parseFloat(mensaje2)]
+        ]);
+      
+
+        var options = {
+          width: 600, height: 320,
+          redFrom: 90, redTo: 100,
+          yellowFrom:75, yellowTo: 90,
+          minorTicks: 5
+        };
+
+        var chart = new google.visualization.Gauge(document.getElementById('medidores'));
+
+        chart.draw(data, options);
+
+        setInterval(function() {
+          
+          data.setValue(0,0,topic);
+          chart.draw(data, options);
+        }, 1300);
+      }
+      function drawVisualization() {
+        var data = google.visualization.arrayToDataTable([
+          ['Día', 'Temperatura', 'Humedad'],
+          ['19/Octubre/2021',  parseFloat(mensaje), parseFloat(mensaje2)]
+        ]);
+
+        var options = {
+          title : 'Gráfica de datos de los topics por dia.',
+          vAxis: {title: 'NIvel del dato'},
+          hAxis: {title: 'Día'},
+          seriesType: 'bars',
+          series: {5: {type: 'line'}}
+        };
+
+        var chart = new google.visualization.ComboChart(document.getElementById('grafica'));
+        chart.draw(data, options);
+      }
+        </script>
+</head>
+<body>
+    <label id="conexion"></label>
+    <div id="status" style="background-color: rgb(54, 248, 54); color: white;"></div>
+    <div style="text-align: center;">
+    <h1>Valor del topic en número:</h1>
+    <h2 id="dato"></h2>
+    <h2 id="humedadxd"><h2>
+    <h2 id="horaxd"><h2>
+    <h1>Medidor que muestra el dato del topic:</h1>
+    <center>
+        <div id="medidores"></div>
+    </center>
+    <h1>Gráfica que muestra el dato del topic:</h1>
+    <div id="grafica" style="width: 900px; height: 500px; display: block; margin: 0 auto;"></div>
+  </div>
+</body>
+<!--<script src="sketch.js"></script>-->
+</html>
